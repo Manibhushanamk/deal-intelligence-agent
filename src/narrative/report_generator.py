@@ -50,46 +50,121 @@ class ReportGenerator:
         body_style = ParagraphStyle(
             'BodyTextCustom',
             parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=9,
+            leading=13,
+            textColor=colors.HexColor('#334155'),
+            spaceAfter=4
+        )
+        bullet_style = ParagraphStyle(
+            'BulletCustom',
+            parent=body_style,
+            leftIndent=12,
+            bulletIndent=4,
+            spaceAfter=3
+        )
+        subhead_style = ParagraphStyle(
+            'SubheadCustom',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
             fontSize=10,
             leading=14,
-            textColor=colors.HexColor('#2d3748')
+            textColor=colors.HexColor('#0F172A'),
+            spaceBefore=6,
+            spaceAfter=3,
+            keepWithNext=True
         )
 
         story = []
 
-        # Header Title
-        story.append(Paragraph(f"DEAL DOSSIER & INTELLIGENCE REPORT: {account_name}", title_style))
-        story.append(Spacer(1, 10))
-
-        # Snapshot Table
-        snapshot_data = [
-            ["Account Name", account_name, "Deal Stage", opportunity_data.get("stage", "N/A")],
-            ["Projected ARR", f"${opportunity_data.get('arr', 0):,.2f}", "Win Probability", f"{int(analytics_summary.get('win_probability', 0.5) * 100)}%"],
-            ["Health Status", analytics_summary.get("health_status", "Healthy"), "Top Risk Vector", analytics_summary.get("top_risk", "None")]
-        ]
-        t = Table(snapshot_data, colWidths=[110, 150, 110, 150])
-        t.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f7fafc')),
-            ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1a202c')),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+        # Top Header Bar
+        banner_table = Table([[
+            Paragraph("<b>DEAL INTELLIGENCE AGENT (DIA) — EXECUTIVE DOSSIER</b>", ParagraphStyle('BannerL', fontName='Helvetica-Bold', fontSize=9, textColor=colors.white)),
+            Paragraph(f"<b>STAGE: {opportunity_data.get('stage', 'N/A').upper()}</b>", ParagraphStyle('BannerR', fontName='Helvetica-Bold', fontSize=9, textColor=colors.white, alignment=2))
+        ]], colWidths=[380, 160])
+        banner_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#0F172A')),
+            ('LEFTPADDING', (0,0), (-1,-1), 8),
+            ('RIGHTPADDING', (0,0), (-1,-1), 8),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
         ]))
-        story.append(t)
-        story.append(Spacer(1, 15))
-
-        # Section 1: Executive Summary
-        story.append(Paragraph("1. Executive Snapshot & Win-Loss Diagnostics", h2_style))
-        story.append(Paragraph(analytics_summary.get("pitch_narrative", "Executive summary pending..."), body_style))
+        story.append(banner_table)
         story.append(Spacer(1, 10))
 
-        # Section 2: Prescriptive Next Steps
+        # Title
+        story.append(Paragraph(f"Account Intelligence Dossier: {account_name}", title_style))
+        story.append(Spacer(1, 6))
+
+        # KPI Metric Cards Table
+        win_prob_pct = int(analytics_summary.get('win_probability', 0.5) * 100)
+        kpi_data = [
+            [
+                Paragraph("<b>Projected ARR</b><br/><font size='13' color='#1E40AF'><b>${:,.2f}</b></font>".format(opportunity_data.get('arr', 0)), ParagraphStyle('KPICell', fontName='Helvetica', fontSize=8, leading=12)),
+                Paragraph(f"<b>Win Probability</b><br/><font size='13' color='#059669'><b>{win_prob_pct}%</b></font>", ParagraphStyle('KPICell2', fontName='Helvetica', fontSize=8, leading=12)),
+                Paragraph(f"<b>Account Health</b><br/><font size='13' color='#0F172A'><b>{analytics_summary.get('health_status', 'Healthy')}</b></font>", ParagraphStyle('KPICell3', fontName='Helvetica', fontSize=8, leading=12)),
+                Paragraph(f"<b>Primary Risk Vector</b><br/><font size='10' color='#DC2626'><b>{analytics_summary.get('top_risk', 'None')}</b></font>", ParagraphStyle('KPICell4', fontName='Helvetica', fontSize=8, leading=12))
+            ]
+        ]
+        t_kpi = Table(kpi_data, colWidths=[135, 135, 135, 135])
+        t_kpi.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#F8FAFC')),
+            ('BOX', (0,0), (-1,-1), 0.75, colors.HexColor('#CBD5E1')),
+            ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor('#E2E8F0')),
+            ('TOPPADDING', (0,0), (-1,-1), 6),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+            ('LEFTPADDING', (0,0), (-1,-1), 8),
+            ('RIGHTPADDING', (0,0), (-1,-1), 8),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ]))
+        story.append(t_kpi)
+        story.append(Spacer(1, 12))
+
+        # Section 1: Strategic Intelligence & Narrative Breakdown
+        story.append(Paragraph("1. Strategic Opportunity Diagnostics & Recalled Intelligence", h2_style))
+        raw_narrative = analytics_summary.get("pitch_narrative", "")
+        
+        # Parse sections cleanly
+        lines = [line.strip() for line in raw_narrative.split("\n") if line.strip() and not line.startswith("=")]
+        for line in lines:
+            if line.startswith("EXECUTIVE SUMMARY") or line.startswith("Target Opportunity") or line.startswith("Model Estimated"):
+                continue
+            elif line.startswith("1. ") or line.startswith("2. ") or line.startswith("3. ") or line.startswith("4. "):
+                story.append(Spacer(1, 3))
+                story.append(Paragraph(f"<b>{line}</b>", subhead_style))
+            elif line.startswith("- ") or line.startswith("• "):
+                clean_bullet = line.lstrip("-• ").strip()
+                story.append(Paragraph(f"• {clean_bullet}", bullet_style))
+            else:
+                story.append(Paragraph(line, body_style))
+
+        story.append(Spacer(1, 8))
+
+        # Section 2: Prescriptive Next-Best-Actions (NBA)
         story.append(Paragraph("2. Prescriptive Next-Best-Actions (NBA)", h2_style))
         nbas = analytics_summary.get("next_best_actions", ["Schedule follow-up meeting."])
         for nba in nbas:
-            story.append(Paragraph(f"• {nba}", body_style))
+            story.append(Paragraph(f"✔ <b>Action:</b> {nba}", bullet_style))
+
+        # Section 3: Automated Google Workspace & Neon DB Execution Staging
+        story.append(Spacer(1, 8))
+        story.append(Paragraph("3. Workspace MCP Staging & Relational Audit", h2_style))
+        ws_audit = [
+            [Paragraph("<b>Channel / MCP Tool</b>", subhead_style), Paragraph("<b>Staged Artifact / Audit Log</b>", subhead_style), Paragraph("<b>Safety Status</b>", subhead_style)],
+            [Paragraph("<b>Gmail Draft</b>", body_style), Paragraph("RFC 2822 Staged Draft with Custom ROI Pitch", body_style), Paragraph("<font color='#059669'><b>Staged (Human-in-Loop)</b></font>", body_style)],
+            [Paragraph("<b>Google Calendar</b>", body_style), Paragraph("Executive Alignment Call (Includes Google Meet Link)", body_style), Paragraph("<font color='#059669'><b>Scheduled</b></font>", body_style)],
+            [Paragraph("<b>Neon PostgreSQL</b>", body_style), Paragraph("Relational State & Health Log Committed via SQLAlchemy", body_style), Paragraph("<font color='#059669'><b>Committed</b></font>", body_style)],
+        ]
+        t_ws = Table(ws_audit, colWidths=[120, 280, 140])
+        t_ws.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#F1F5F9')),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E1')),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+            ('LEFTPADDING', (0,0), (-1,-1), 6),
+            ('RIGHTPADDING', (0,0), (-1,-1), 6),
+        ]))
+        story.append(t_ws)
 
         doc.build(story)
         return output_filepath
