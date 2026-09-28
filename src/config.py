@@ -1,6 +1,16 @@
 import os
 from pydantic import BaseModel, Field
 
+# Automatically load .env if present
+env_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+if os.path.exists(env_file):
+    with open(env_file, "r") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                os.environ.setdefault(k.strip(), v.strip().strip("'\""))
+
 class Config(BaseModel):
     # Hindsight Memory SDK Configuration
     HINDSIGHT_API_KEY: str = Field(default_factory=lambda: os.getenv("HINDSIGHT_API_KEY", "mock_hindsight_api_key"))
