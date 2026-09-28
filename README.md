@@ -100,15 +100,25 @@ deal-intelligence-agent/
 
 ### 1. Hindsight Memory SDK Layer (`src/memory/`)
 
-The memory foundation is encapsulated in `HindsightClient`, implementing:
-* **Namespace Partitioning:** Every client account is isolated within its own dedicated namespace (`namespace=account_id`). This guarantees zero cross-tenant memory leakage while enabling account-level longitudinal context retention.
-* **Idempotent Retention (`retain`):** Automatically detects existing interaction IDs, updating state when transcripts are enriched and appending new interaction events with ISO 8601 timestamps.
-* **Multi-Hop Semantic Recall (`recall`):** Employs semantic term intersection and relevance weighting across stored interaction payloads, retrieving historical compliance disclosures (e.g., SOC2 Type II, HIPAA, SAML 2.0 SSO) made months prior.
+The memory foundation is encapsulated in `HindsightClient`, implementing Hindsight's full **cognitive triad** (**Retain**, **Recall**, and **Reflect**):
+
+* **Memory Bank Partitioning:** Every client account is isolated within its own dedicated memory bank (`memory_bank_id` / `namespace=account_id`). This guarantees zero cross-tenant memory leakage while enabling longitudinal context retention across quarters.
+* **Idempotent Retention (`retain`):** Ingests raw interaction payloads, documents, and transcripts into Hindsight. Automatically updates state when notes are enriched and creates timestamped audit entries.
+* **Multi-Hop Semantic Recall (`recall`):** Employs hybrid multi-strategy matching across semantic similarity and keyword presence, retrieving historical compliance disclosures (e.g., SOC2 Type II, HIPAA, SAML 2.0 SSO) made months prior.
+* **Cognitive Reflection (`reflect`):** Reasons over the account's memory bank to synthesize higher-order beliefs, consolidated constraints, and strategic imperatives (e.g., recognizing that budget disclosures necessitate ROI business case reviews).
 * **Automated Fact Extraction (`extract_facts`):** Automatically categorizes extracted statements into three critical deal dimensions:
   * `budget`: Budget ceilings, cost objections, payment terms.
   * `technical`: Infrastructure constraints, auth prerequisites, data residency.
   * `competitor`: Alternative evaluations and vendor benchmark mentions.
 * **Offline Fallback Resilience:** When `HINDSIGHT_API_KEY` is unset or mocked, the client automatically defaults to an internal thread-safe in-memory store without failing or interrupting agent execution.
+
+> [!TIP]
+> **Hindsight Cloud Live Evaluation:**
+> To connect DIA to a live managed Hindsight instance:
+> 1. Register at [ui.hindsight.vectorize.io](https://ui.hindsight.vectorize.io).
+> 2. Apply promo code **`MEMHACK99`** in the billing section for **$50 in free credits**.
+> 3. Export `HINDSIGHT_API_KEY="your_key"` and `HINDSIGHT_BASE_URL="https://api.hindsight.vectorize.io"`.
+> 4. Refer to official documentation at [hindsight.vectorize.io](https://hindsight.vectorize.io/) and [GitHub](https://github.com/vectorize-io/hindsight).
 
 ### 2. Multi-Vector Intelligence Modules (`src/analytics/`)
 
@@ -308,17 +318,18 @@ rootdir: /home/.../deal-intelligence-agent
 configfile: pyproject.toml
 plugins: asyncio-1.4.0, anyio-4.15.1
 
-tests/test_hindsight_memory.py::test_hindsight_retain_and_recall PASSED  [ 11%]
-tests/test_hindsight_memory.py::test_hindsight_fact_extraction PASSED    [ 22%]
-tests/test_intelligence_modules.py::test_cross_deal_analytics PASSED     [ 33%]
-tests/test_intelligence_modules.py::test_relationship_intelligence PASSED [ 44%]
-tests/test_intelligence_modules.py::test_competitive_intelligence PASSED [ 55%]
-tests/test_intelligence_modules.py::test_win_loss_reasoning PASSED       [ 66%]
-tests/test_workspace_actions.py::test_calendar_service PASSED            [ 77%]
-tests/test_workspace_actions.py::test_gmail_service PASSED               [ 88%]
+tests/test_hindsight_memory.py::test_hindsight_retain_and_recall PASSED  [ 10%]
+tests/test_hindsight_memory.py::test_hindsight_fact_extraction PASSED    [ 20%]
+tests/test_hindsight_memory.py::test_hindsight_reflect PASSED            [ 30%]
+tests/test_intelligence_modules.py::test_cross_deal_analytics PASSED     [ 40%]
+tests/test_intelligence_modules.py::test_relationship_intelligence PASSED [ 50%]
+tests/test_intelligence_modules.py::test_competitive_intelligence PASSED [ 60%]
+tests/test_intelligence_modules.py::test_win_loss_reasoning PASSED       [ 70%]
+tests/test_workspace_actions.py::test_calendar_service PASSED            [ 80%]
+tests/test_workspace_actions.py::test_gmail_service PASSED               [ 90%]
 tests/test_workspace_actions.py::test_mcp_server_workspace_tools PASSED  [100%]
 
-============================== 9 passed in 0.61s ===============================
+============================== 10 passed in 0.45s ==============================
 ```
 
 ### 5. Run the End-to-End Enterprise Demo
@@ -341,6 +352,11 @@ python3 demo.py
 ================================================================================
                         DIA ANALYTICS & INSIGHTS
 ================================================================================
+
+▶ Hindsight Memory Reflection (Consolidated Beliefs):
+    🧠 Account has explicit historical disclosures across: budget, competitor, technical.
+    🧠 Budget considerations require ROI justification before closing.
+    🧠 Active competitor evaluation requires proactive battlecard positioning.
 
 ▶ Account Health Score: 100.0/100 (Healthy)
 ▶ Computed Win Probability: 55%
@@ -384,5 +400,9 @@ ls -lh acme_corp_deal_dossier.pdf
 * **Event:** HackwithHyderabad 3.0 / Hindsight AI Agents Hackathon
 * **Track:** Cognitive Agents, Enterprise Productivity & Persistent Memory
 * **Repository:** [https://github.com/Manibhushanamk/deal-intelligence-agent](https://github.com/Manibhushanamk/deal-intelligence-agent)
-* **Core Technologies:** Hindsight Memory SDK, Neon Serverless PostgreSQL, Model Context Protocol (MCP), ReportLab, Google Workspace APIs, Pydantic, SQLAlchemy.
+* **Required Memory Technology:** [Hindsight Persistent Memory](https://github.com/vectorize-io/hindsight) (Cloud endpoint: [ui.hindsight.vectorize.io](https://ui.hindsight.vectorize.io) with promo code `MEMHACK99` for $50 credits)
+* **LLM Engine:** [Groq](https://groq.com/) ultra-low latency inference (`qwen/qwen3-32b` / `openai/gpt-oss-120b`)
+* **Database & Persistence:** [Neon Serverless PostgreSQL](https://neon.tech/) via SQLAlchemy
+* **Protocol & Interoperability:** [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) Google Workspace Tools (Google Meet + Gmail RFC 2822)
+* **Autonomous Development Partner:** [Google Jules](https://jules.google.com/) coding agent
 * **License:** [MIT License](LICENSE)

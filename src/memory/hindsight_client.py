@@ -21,17 +21,22 @@ class HindsightClient:
 
     def retain(
         self,
-        namespace: str,
-        key: str,
-        data: Dict[str, Any],
-        retention_policy: str = "persistent"
+        namespace: Optional[str] = None,
+        key: str = "default_key",
+        data: Optional[Dict[str, Any]] = None,
+        retention_policy: str = "persistent",
+        memory_bank_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Inscribes sales events, meeting notes, transcripts, or facts into Hindsight memory.
+        Supports both namespace and memory_bank_id parameters.
         Attempts HTTP POST to Hindsight API with in-memory persistence fallback.
         """
+        bank_id = memory_bank_id or namespace or "default"
+        data = data or {}
         request_payload = {
-            "namespace": namespace,
+            "namespace": bank_id,
+            "memory_bank_id": bank_id,
             "key": key,
             "payload": data,
             "retention_policy": retention_policy
@@ -53,14 +58,14 @@ class HindsightClient:
                 )
                 with urllib.request.urlopen(req, timeout=5) as resp:
                     if resp.status == 200:
-                        logger.info(f"[Hindsight API] Successfully retained memory to cloud for {namespace}:{key}")
+                        logger.info(f"[Hindsight API] Successfully retained memory to cloud for {bank_id}:{key}")
             except Exception as e:
                 logger.warning(f"[Hindsight API] Cloud call failed ({e}), falling back to local memory store.")
 
-        if namespace not in self._memory_store:
-            self._memory_store[namespace] = []
+        if bank_id not in self._memory_store:
+            self._memory_store[bank_id] = []
 
-        existing_entries = self._memory_store[namespace]
+        existing_entries = self._memory_store[bank_id]
         updated = False
         for entry in existing_entries:
             if entry.get("key") == key and entry.get("payload", {}).get("interaction_id") == data.get("interaction_id"):
@@ -76,20 +81,23 @@ class HindsightClient:
                 "retention_policy": retention_policy,
                 "timestamp": data.get("timestamp", "")
             }
-            self._memory_store[namespace].append(record)
+            self._memory_store[bank_id].append(record)
 
-        logger.info(f"[Hindsight SDK] Retained context in namespace='{namespace}', key='{key}'")
-        return {"status": "success", "namespace": namespace, "key": key}
+        logger.info(f"[Hindsight SDK] Retained context in bank/namespace='{bank_id}', key='{key}'")
+        return {"status": "success", "namespace": bank_id, "memory_bank_id": bank_id, "key": key}
 
     def recall(
         self,
-        namespace: str,
-        query: str,
-        top_k: int = 5
+        namespace: Optional[str] = None,
+        query: str = "",
+        top_k: int = 5,
+        memory_bank_id: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Retrieves high-precision contextual memories using multi-hop semantic matching.
+        Supports both namespace and memory_bank_id.
         """
+        bank_id = memory_bank_id or namespace or "default"
         if self.api_key and not self.api_key.startswith("mock_"):
             try:
                 url = f"{self.base_url}/v1/recall"
@@ -97,7 +105,7 @@ class HindsightClient:
                     "Content-Type": "application/json",
                     "Authorization": f"Bearer {self.api_key}"
                 }
-                req_data = json.dumps({"namespace": namespace, "query": query, "top_k": top_k}).encode('utf-8')
+                req_data = json.dumps({"namespace": bank_id, "memory_bank_id": bank_id, "query": query, "top_k": top_k}).encode('utf-8')
                 req = urllib.request.Request(url, data=req_data, headers=headers, method="POST")
                 with urllib.request.urlopen(req, timeout=5) as resp:
                     if resp.status == 200:
@@ -106,10 +114,10 @@ class HindsightClient:
             except Exception as e:
                 logger.warning(f"[Hindsight API] Cloud recall failed ({e}), falling back to local memory store.")
 
-        if namespace not in self._memory_store:
+        if bank_id not in self._memory_store:
             return []
 
-        entries = self._memory_store[namespace]
+        entries = self._memory_store[bank_id]
         query_words = set(query.lower().split())
 
         scored_entries = []
@@ -122,8 +130,62 @@ class HindsightClient:
 
         scored_entries.sort(key=lambda x: x[0], reverse=True)
         results = [item[1] for item in scored_entries[:top_k]]
-        logger.info(f"[Hindsight SDK] Recalled {len(results)} items for query='{query}' in namespace='{namespace}'")
+        logger.info(f"[Hindsight SDK] Recalled {len(results)} items for query='{query}' in bank='{bank_id}'")
         return results
+
+    def reflect(
+        self,
+        namespace: Optional[str] = None,
+        topic: str = "deal_strategy",
+        memory_bank_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Synthesizes higher-order beliefs, patterns, and insights across retained memories in the given memory bank.
+        Corresponds to Hindsight's 'reflect' cognitive operation.
+        """
+        bank_id = memory_bank_id or namespace or "default"
+        if self.api_key and not self.api_key.startswith("mock_"):
+            try:
+                url = f"{self.base_url}/v1/reflect"
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {self.api_key}"
+                }
+                req_data = json.dumps({"namespace": bank_id, "memory_bank_id": bank_id, "topic": topic}).encode('utf-8')
+                req = urllib.request.Request(url, data=req_data, headers=headers, method="POST")
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    if resp.status == 200:
+                        return json.loads(resp.read().decode('utf-8'))
+            except Exception as e:
+                logger.warning(f"[Hindsight API] Cloud reflect failed ({e}), falling back to local reflection.")
+
+        entries = self._memory_store.get(bank_id, [])
+        extracted_facts = []
+        for e in entries:
+            content = e.get("payload", {}).get("content", "")
+            if content:
+                extracted_facts.extend(self.extract_facts(content, e.get("key", "")))
+
+        categories = sorted(list(set(f.category for f in extracted_facts)))
+        beliefs = []
+        if categories:
+            beliefs.append(f"Account has explicit historical disclosures across: {', '.join(categories)}.")
+        if "budget" in categories:
+            beliefs.append("Budget considerations require ROI justification before closing.")
+        if "competitor" in categories:
+            beliefs.append("Active competitor evaluation requires proactive battlecard positioning.")
+
+        if not beliefs:
+            beliefs.append("Early stage discovery; ongoing fact synthesis across interactions.")
+
+        return {
+            "status": "success",
+            "memory_bank_id": bank_id,
+            "topic": topic,
+            "total_memories_consolidated": len(entries),
+            "key_fact_dimensions": categories,
+            "consolidated_beliefs": beliefs
+        }
 
     def extract_facts(self, text: str, source_interaction_id: str) -> List[FactExtraction]:
         """

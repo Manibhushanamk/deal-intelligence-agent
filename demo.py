@@ -103,6 +103,14 @@ def main():
 
     analytics = processed_state.analytics_results
 
+    # Hindsight Memory Reflection
+    reflection = processed_state.consolidated_reflection or {}
+    beliefs = reflection.get("consolidated_beliefs", [])
+    if beliefs:
+        print("\n▶ Hindsight Memory Reflection (Consolidated Beliefs):")
+        for b in beliefs:
+            print(f"    🧠 {b}")
+
     # Health Score
     health = analytics.get("account_health", {})
     print(f"\n▶ Account Health Score: {health.get('health_score')}/100 ({health.get('health_status')})")

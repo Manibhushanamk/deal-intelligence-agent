@@ -30,3 +30,21 @@ def test_hindsight_fact_extraction():
     assert "budget" in categories
     assert "technical" in categories
     assert "competitor" in categories
+
+def test_hindsight_reflect():
+    client = HindsightClient()
+    client.retain(
+        memory_bank_id="bank_test_202",
+        key="int_01",
+        data={
+            "interaction_id": "int_01",
+            "content": "Customer mentioned $150k budget ceiling and compared pricing with Salesforce."
+        }
+    )
+    reflection = client.reflect(memory_bank_id="bank_test_202", topic="deal_strategy")
+    assert reflection["status"] == "success"
+    assert reflection["total_memories_consolidated"] == 1
+    assert "budget" in reflection["key_fact_dimensions"]
+    assert "competitor" in reflection["key_fact_dimensions"]
+    assert len(reflection["consolidated_beliefs"]) > 0
+

@@ -12,5 +12,6 @@ class AgentState(BaseModel):
     recalled_memories: List[Dict[str, Any]] = Field(default_factory=list)
     analytics_results: Dict[str, Any] = Field(default_factory=dict)
     pitch_narrative: Optional[str] = None
+    consolidated_reflection: Optional[Dict[str, Any]] = None
     staged_actions: List[Dict[str, Any]] = Field(default_factory=list)
     execution_status: str = "initialized"

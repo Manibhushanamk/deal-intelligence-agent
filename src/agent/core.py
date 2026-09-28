@@ -48,13 +48,17 @@ class DealIntelligenceAgent:
                 data=inter
             )
 
-        # 2. Recall historical context from Hindsight
+        # 2. Recall historical context from Hindsight & Reflect on beliefs
         recalled = self.memory.recall(
             namespace=state.account_id,
             query="security compliance pricing budget competitor SSO",
             top_k=5
         )
         state.recalled_memories = recalled
+        state.consolidated_reflection = self.memory.reflect(
+            namespace=state.account_id,
+            topic="deal_strategy"
+        )
 
         # 3. Execute Core Intelligence Modules
         pain_points = self.cross_deal.mine_recurring_pain_points(state.interactions)
